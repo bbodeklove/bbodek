@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="세척입력">
+<meta name="theme-color" content="#0f4c35">
+<title>세척 생산량 입력</title>
+<link rel="manifest" href="manifest.json">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+:root{
+  --green:#1a6b4a;--green-dark:#0f4c35;--green-light:#e8f5ee;
+  --amber:#b45309;--amber-light:#fef3c7;
+  --red:#b91c1c;--red-light:#fee2e2;
+  --bg:#f5f7f5;--card:#ffffff;--text:#1a1f1a;--muted:#6b7b6b;--border:#d8e4d8;
+  --radius:14px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+
+/* Header */
+.header{background:var(--green-dark);padding:52px 20px 0;padding-top:calc(48px + env(safe-area-inset-top));position:relative;overflow:hidden}
+.header::before{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,0.05)}
+.header-top{padding:0 0 16px}
+.header-label{font-size:11px;color:rgba(255,255,255,0.6);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px}
+.header-title{font-size:21px;font-weight:700;color:white}
+.header-date{font-size:12px;color:rgba(255,255,255,0.65);margin-top:4px}
+
+/* Tab bar */
+.tab-bar{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid rgba(255,255,255,0.12)}
+.tab-btn{padding:12px 8px;text-align:center;font-size:13px;font-weight:500;color:rgba(255,255,255,0.5);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;background:transparent;border-left:none;border-right:none;border-top:none;font-family:'Noto Sans KR',sans-serif}
+.tab-btn.active-prod{color:white;border-bottom-color:#4ade80}
+.tab-btn.active-defect{color:white;border-bottom-color:#fbbf24}
+.tab-btn.active-discard{color:white;border-bottom-color:#f87171}
+.tab-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle;position:relative;top:-1px}
+.dot-prod{background:#4ade80}
+.dot-defect{background:#fbbf24}
+.dot-discard{background:#f87171}
+
+/* Body */
+.body{padding:16px 16px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* Card */
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:18px;margin-bottom:12px}
+.card-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px}
+
+/* Fields */
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.field-label{font-size:12px;color:var(--muted);font-weight:500;margin-bottom:5px;display:block}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+select,input[type=number],input[type=date]{
+  width:100%;padding:11px 12px;font-size:14px;
+  font-family:'Noto Sans KR',sans-serif;
+  border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--bg);color:var(--text);
+  appearance:none;-webkit-appearance:none;outline:none;transition:border-color 0.15s
+}
+select:focus,input:focus{border-color:var(--green);background:white}
+select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7b6b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;padding-right:32px
+}
+
+/* Shift */
+.shift-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shift-opt{padding:10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);text-align:center;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all 0.15s;user-select:none;background:var(--bg)}
+.shift-opt.active{border-color:var(--green);background:var(--green-light);color:var(--green-dark)}
+.shift-icon{font-size:16px;display:block;margin-bottom:2px}
+
+/* Dish checklist */
+.dish-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:10px}
+.dish-row:last-child{border-bottom:none}
+.dish-check{width:22px;height:22px;flex-shrink:0;border:2px solid var(--border);border-radius:5px;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
+.dish-check.checked{background:var(--green);border-color:var(--green)}
+.dish-check.checked::after{content:'';display:block;width:5px;height:9px;border:2px solid white;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px)}
+.dish-name{flex:1;font-size:14px;color:var(--text);cursor:pointer;user-select:none}
+.dish-name.dimmed{color:var(--muted)}
+
+/* Qty inputs inline */
+.dish-qty-wrap{display:flex;align-items:center;gap:4px;opacity:0;pointer-events:none;transition:opacity 0.15s;flex-shrink:0}
+.dish-qty-wrap.visible{opacity:1;pointer-events:all}
+.qty-col{display:flex;flex-direction:column;align-items:center;gap:1px}
+.qty-col-label{font-size:9px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.04em}
+.qty-input-sm{width:62px;padding:6px 6px;font-size:13px;font-weight:700;font-family:'Noto Sans KR',sans-serif;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:white;color:var(--text);text-align:right;outline:none;appearance:none;-webkit-appearance:none}
+.qty-input-sm:focus{border-color:var(--green)}
+.qty-divider-sm{font-size:11px;color:var(--border);margin-top:12px}
+
+/* Defect grid */
+.defect-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.defect-item{display:flex;flex-direction:column;gap:3px}
+.defect-label-sm{font-size:11px;color:var(--muted);font-weight:500}
+.defect-input{width:100%;padding:9px 10px;font-size:14px;font-weight:700;font-family:'Noto Sans KR',sans-serif;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);text-align:right;outline:none;appearance:none;-webkit-appearance:none;transition:border-color 0.15s}
+.defect-input:focus{border-color:var(--amber);background:white}
+
+/* Discard */
+.discard-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.discard-input{width:100%;padding:11px 12px;font-size:15px;font-weight:700;font-family:'Noto Sans KR',sans-serif;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);text-align:right;outline:none;appearance:none;-webkit-appearance:none;transition:border-color 0.15s}
+.discard-input:focus{border-color:var(--red);background:white}
+
+/* Summary bar */
+.summary-bar{border-radius:var(--radius);padding:14px 18px;margin-bottom:12px}
+.summary-bar.prod{background:var(--green-dark)}
+.summary-bar.defect{background:#78350f}
+.summary-bar.discard{background:#7f1d1d}
+.summary-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.summary-label{font-size:12px;color:rgba(255,255,255,0.65)}
+.summary-total{font-size:22px;font-weight:700;color:white}
+.summary-unit{font-size:12px;color:rgba(255,255,255,0.6);margin-left:3px}
+.summary-chips{display:flex;flex-wrap:wrap;gap:5px}
+.summary-chip{background:rgba(255,255,255,0.12);border-radius:20px;padding:3px 9px;font-size:11px;color:rgba(255,255,255,0.85)}
+.summary-empty{font-size:12px;color:rgba(255,255,255,0.4)}
+
+/* Submit */
+.submit-btn{width:100%;color:white;border:none;border-radius:var(--radius);padding:16px;font-size:16px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;letter-spacing:0.02em;transition:opacity 0.15s,transform 0.1s;margin-bottom:12px}
+.submit-btn.prod{background:var(--green)}
+.submit-btn.defect{background:#b45309}
+.submit-btn.discard{background:#b91c1c}
+.submit-btn:active{transform:scale(0.98);opacity:0.85}
+.submit-btn:disabled{background:var(--border);color:var(--muted)}
+
+/* Toast */
+.toast{display:none;border-radius:var(--radius-sm);padding:13px 16px;font-size:13px;text-align:center;margin-bottom:12px;font-weight:500;color:white}
+.toast.prod-bg{background:var(--green)}
+.toast.defect-bg{background:#b45309}
+.toast.discard-bg{background:#b91c1c}
+.toast.error-bg{background:#c0392b}
+.toast.show{display:block;animation:fadeIn 0.2s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* History */
+.history-item{padding:10px 0;border-bottom:1px solid var(--border)}
+.history-item:last-child{border-bottom:none}
+.history-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.h-factory{font-size:13px;font-weight:500}
+.h-time{font-size:11px;color:var(--muted)}
+.h-item-row{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:1px 0}
+.h-item-qty{font-weight:500}
+.h-item-qty.prod{color:var(--green)}
+.h-item-qty.defect{color:#b45309}
+.h-item-qty.discard{color:#b91c1c}
+.empty-state{text-align:center;padding:20px 0;color:var(--muted);font-size:13px}
+
+.install-banner{background:#f0c040;border-radius:var(--radius-sm);padding:11px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.install-banner.hidden{display:none}
+.install-text{font-size:12px;font-weight:500;color:#5a3a00;flex:1}
+.install-close{font-size:17px;color:#5a3a00;padding:0 4px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="header-label">세척 관리 시스템</div>
+    <div class="header-title">Raw Data 입력</div>
+    <div class="header-date" id="header-date"></div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active-prod" id="tab-prod" onclick="switchTab('prod')">
+      <span class="tab-dot dot-prod"></span>생산량
+    </button>
+    <button class="tab-btn" id="tab-defect" onclick="switchTab('defect')">
+      <span class="tab-dot dot-defect"></span>불량
+    </button>
+    <button class="tab-btn" id="tab-discard" onclick="switchTab('discard')">
+      <span class="tab-dot dot-discard"></span>폐기
+    </button>
+  </div>
+</div>
+
+<div class="body">
+
+  <div class="install-banner hidden" id="install-banner">
+    <span style="font-size:18px">📲</span>
+    <span class="install-text">홈화면에 추가하면 앱처럼 사용할 수 있어요</span>
+    <span class="install-close" onclick="document.getElementById('install-banner').classList.add('hidden')">×</span>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ===== 공통 작업 정보 ===== -->
+  <div class="card" id="common-card">
+    <div class="card-title">작업 정보</div>
+    <div class="field">
+      <label class="field-label">날짜</label>
+      <input type="date" id="work-date">
+    </div>
+    <div class="field">
+      <label class="field-label">팩토리</label>
+      <select id="factory">
+        <option value="">팩토리 선택</option>
+        <option>광명A</option><option>광명C</option><option>광명D</option>
+        <option>화성A</option><option>클린허브</option><option>더좋은식판</option>
+        <option>하람지기</option><option>에이스푸드</option><option>이음</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label">주/야간</label>
+      <div class="shift-grid">
+        <div class="shift-opt active" id="opt-day" onclick="setShift('주간')">
+          <span class="shift-icon">☀️</span>주간
+        </div>
+        <div class="shift-opt" id="opt-night" onclick="setShift('야간')">
+          <span class="shift-icon">🌙</span>야간
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 생산량 탭 ===== -->
+  <div class="tab-panel active" id="panel-prod">
+    <div class="card">
+      <div class="card-title">식기 종류 &amp; 수량 — 정규 / OT</div>
+      <div id="dish-list-prod"></div>
+    </div>
+    <div class="summary-bar prod">
+      <div class="summary-top">
+        <span class="summary-label">선택 품목 합계</span>
+        <div><span class="summary-total" id="prod-total">0</span><span class="summary-unit">개</span></div>
+      </div>
+      <div class="summary-chips" id="prod-chips"><span class="summary-empty">식기 종류를 선택해주세요</span></div>
+    </div>
+    <button class="submit-btn prod" id="submit-prod" onclick="submitForm('prod')">생산량 시트에 전송</button>
+    <div class="card">
+      <div class="card-title">오늘 입력 내역</div>
+      <div id="history-prod"><div class="empty-state">아직 입력한 내역이 없습니다</div></div>
+    </div>
+  </div>
+
+  <!-- ===== 불량 탭 ===== -->
+  <div class="tab-panel" id="panel-defect">
+    <div class="card">
+      <div class="card-title">식기 종류</div>
+      <div id="dish-list-defect"></div>
+    </div>
+    <div class="card" id="defect-fields-card">
+      <div class="card-title">불량 항목 (개수 입력)</div>
+      <div class="defect-grid">
+        <div class="defect-item"><div class="defect-label-sm">이물질</div><input class="defect-input" type="number" id="d-foreign" placeholder="0" min="0" inputmode="numeric" oninput="updateDefectSummary()"></div>
+        <div class="defect-item"><div class="defect-label-sm">전분</div><input class="defect-input" type="number" id="d-starch" placeholder="0" min="0" inputmode="numeric" oninput="updateDefectSummary()"></div>
+        <div class="defect-item"><div class="defect-label-sm">기름</div><input class="defect-input" type="number" id="d-oil" placeholder="0" min="0" inputmode="numeric" oninput="updateDefectSummary()"></div>
+        <div class="defect-item"><div class="defect-label-sm">이염</div><input class="defect-input" type="number" id="d-dye" placeholder="0" min="0" inputmode="numeric" oninput="updateDefectSummary()"></div>
+        <div class="defect-item"><div class="defect-label-sm">파손</div><input class="defect-input" type="number" id="d-break" placeholder="0" min="0" inputmode="numeric" oninput="updateDefectSummary()"></div>
+        <div class="defect-item"><div class="defect-label-sm">물기</div><input class="defect-input" type="number" id="d-water" placeholder="0" min="0" inputmode="numeric" oninput="updateDefectSummary()"></div>
+        <div class="defect-item"><div class="defect-label-sm">탄화</div><input class="defect-input" type="number" id="d-char" placeholder="0" min="0" inputmode="numeric" oninput="updateDefectSummary()"></div>
+        <div class="defect-item"><div class="defect-label-sm">곰팡이</div><input class="defect-input" type="number" id="d-mold" placeholder="0" min="0" inputmode="numeric" oninput="updateDefectSummary()"></div>
+        <div class="defect-item"><div class="defect-label-sm">벌레</div><input class="defect-input" type="number" id="d-bug" placeholder="0" min="0" inputmode="numeric" oninput="updateDefectSummary()"></div>
+        <div class="defect-item"><div class="defect-label-sm">기타</div><input class="defect-input" type="number" id="d-etc" placeholder="0" min="0" inputmode="numeric" oninput="updateDefectSummary()"></div>
+        <div class="defect-item" style="grid-column:span 2"><div class="defect-label-sm">샘플 수량</div><input class="defect-input" type="number" id="d-sample" placeholder="0" min="0" inputmode="numeric" style="width:100%;text-align:right"></div>
+      </div>
+    </div>
+    <div class="summary-bar defect">
+      <div class="summary-top">
+        <span class="summary-label">선택 품목 / 불량 합계</span>
+        <div><span class="summary-total" id="defect-total">0</span><span class="summary-unit">건</span></div>
+      </div>
+      <div class="summary-chips" id="defect-chips"><span class="summary-empty">식기 종류를 선택해주세요</span></div>
+    </div>
+    <button class="submit-btn defect" id="submit-defect" onclick="submitForm('defect')">불량 시트에 전송</button>
+    <div class="card">
+      <div class="card-title">오늘 입력 내역</div>
+      <div id="history-defect"><div class="empty-state">아직 입력한 내역이 없습니다</div></div>
+    </div>
+  </div>
+
+  <!-- ===== 폐기 탭 ===== -->
+  <div class="tab-panel" id="panel-discard">
+    <div class="card">
+      <div class="card-title">식기 종류</div>
+      <div id="dish-list-discard"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">폐기 수량</div>
+      <div class="discard-grid">
+        <div class="field">
+          <label class="field-label">세척 폐기</label>
+          <input class="discard-input" type="number" id="dis-wash" placeholder="0" min="0" inputmode="numeric" oninput="updateDiscardSummary()">
+        </div>
+        <div class="field">
+          <label class="field-label">검수 폐기</label>
+          <input class="discard-input" type="number" id="dis-inspect" placeholder="0" min="0" inputmode="numeric" oninput="updateDiscardSummary()">
+        </div>
+      </div>
+    </div>
+    <div class="summary-bar discard">
+      <div class="summary-top">
+        <span class="summary-label">선택 품목 / 폐기 합계</span>
+        <div><span class="summary-total" id="discard-total">0</span><span class="summary-unit">개</span></div>
+      </div>
+      <div class="summary-chips" id="discard-chips"><span class="summary-empty">식기 종류를 선택해주세요</span></div>
+    </div>
+    <button class="submit-btn discard" id="submit-discard" onclick="submitForm('discard')">폐기 시트에 전송</button>
+    <div class="card">
+      <div class="card-title">오늘 입력 내역</div>
+      <div id="history-discard"><div class="empty-state">아직 입력한 내역이 없습니다</div></div>
+    </div>
+  </div>
+
+</div><!-- /body -->
+
+<script>
+// ============================================================
+// 설정
+// ============================================================
+var SCRIPT_URL = {
+  prod:    'https://script.google.com/macros/s/AKfycbxsIfxSsrhTqdgV8ohfO7gUV4rH1EF4yWhJIzVp9t1Eip_itF7N5g43dMEmN7PuLaZLTw/exec',
+  defect:  'https://script.google.com/macros/s/AKfycbxsIfxSsrhTqdgV8ohfO7gUV4rH1EF4yWhJIzVp9t1Eip_itF7N5g43dMEmN7PuLaZLTw/exec',
+  discard: 'https://script.google.com/macros/s/AKfycbxsIfxSsrhTqdgV8ohfO7gUV4rH1EF4yWhJIzVp9t1Eip_itF7N5g43dMEmN7PuLaZLTw/exec'
+};
+// 또는 하나의 URL에서 type으로 분기하는 방식도 가능합니다
+
+var DISHES = ['스텐 식판(20개)','스텐 식판(30개)','멜라민 식판','4찬 식판 A형','국그릇','원형 식판','수저','키즈 숟가락','키즈 포크','키즈 젓가락','키즈 식판','키즈 간식기'];
+var DEFECT_IDS = ['d-foreign','d-starch','d-oil','d-dye','d-break','d-water','d-char','d-mold','d-bug','d-etc'];
+var DEFECT_NAMES = ['이물질','전분','기름','이염','파손','물기','탄화','곰팡이','벌레','기타'];
+
+var shift = '주간';
+var currentTab = 'prod';
+var checked = {prod:{}, defect:{}, discard:{}};
+var todayStr = new Date().toISOString().slice(0,10);
+var histories = {prod:[], defect:[], discard:[]};
+
+// 날짜 초기화
+(function(){
+  var hd = localStorage.getItem('history_date');
+  if(hd === todayStr){
+    try{histories.prod=JSON.parse(localStorage.getItem('h_prod')||'[]')}catch(e){}
+    try{histories.defect=JSON.parse(localStorage.getItem('h_defect')||'[]')}catch(e){}
+    try{histories.discard=JSON.parse(localStorage.getItem('h_discard')||'[]')}catch(e){}
+  } else {
+    localStorage.setItem('history_date', todayStr);
+    localStorage.setItem('h_prod','[]');
+    localStorage.setItem('h_defect','[]');
+    localStorage.setItem('h_discard','[]');
+  }
+  document.getElementById('work-date').value = todayStr;
+})();
+
+// 탭 전환
+function switchTab(t){
+  currentTab = t;
+  ['prod','defect','discard'].forEach(function(x){
+    document.getElementById('panel-'+x).classList.toggle('active', x===t);
+    var btn = document.getElementById('tab-'+x);
+    btn.className = 'tab-btn' + (x===t ? ' active-'+x : '');
+  });
+}
+
+// 주/야간
+function setShift(s){
+  shift=s;
+  document.getElementById('opt-day').className='shift-opt'+(s==='주간'?' active':'');
+  document.getElementById('opt-night').className='shift-opt'+(s==='야간'?' active':'');
+}
+
+// 식기 체크리스트 빌드
+function buildDishList(type){
+  var el = document.getElementById('dish-list-'+type);
+  var isProd = type === 'prod';
+  el.innerHTML = DISHES.map(function(name,i){
+    var qtyHtml = isProd
+      ? '<div class="dish-qty-wrap" id="qw-'+type+'-'+i+'">'+
+          '<div class="qty-col"><div class="qty-col-label">정규</div><input class="qty-input-sm" type="number" id="reg-'+i+'" placeholder="0" min="0" inputmode="numeric" oninput="updateProdSummary()"></div>'+
+          '<div class="qty-divider-sm">/</div>'+
+          '<div class="qty-col"><div class="qty-col-label">OT</div><input class="qty-input-sm" type="number" id="ot-'+i+'" placeholder="0" min="0" inputmode="numeric" oninput="updateProdSummary()"></div>'+
+        '</div>'
+      : '';
+    return '<div class="dish-row">'+
+      '<div class="dish-check" id="chk-'+type+'-'+i+'" onclick="toggleDish(\''+type+'\','+i+')"></div>'+
+      '<div class="dish-name dimmed" id="nm-'+type+'-'+i+'" onclick="toggleDish(\''+type+'\','+i+')">'+name+'</div>'+
+      qtyHtml+
+    '</div>';
+  }).join('');
+}
+
+function toggleDish(type, i){
+  checked[type][i] = !checked[type][i];
+  var on = checked[type][i];
+  document.getElementById('chk-'+type+'-'+i).className='dish-check'+(on?' checked':'');
+  document.getElementById('nm-'+type+'-'+i).className='dish-name'+(on?'':' dimmed');
+  if(type==='prod'){
+    document.getElementById('qw-prod-'+i).className='dish-qty-wrap'+(on?' visible':'');
+    if(!on){document.getElementById('reg-'+i).value='';document.getElementById('ot-'+i).value='';}
+    else{setTimeout(function(){document.getElementById('reg-'+i).focus()},50)}
+    updateProdSummary();
+  } else if(type==='defect'){
+    updateDefectSummary();
+  } else {
+    updateDiscardSummary();
+  }
+}
+
+function getCheckedDishes(type){
+  return DISHES.map(function(n,i){return checked[type][i]?n:null}).filter(Boolean);
+}
+
+// 생산량 요약
+function updateProdSummary(){
+  var total=0, chips=[];
+  DISHES.forEach(function(name,i){
+    if(!checked.prod[i])return;
+    var r=parseInt(document.getElementById('reg-'+i).value)||0;
+    var o=parseInt(document.getElementById('ot-'+i).value)||0;
+    total+=r+o;
+    chips.push(name+' '+(r+o).toLocaleString());
+  });
+  document.getElementById('prod-total').textContent=total.toLocaleString();
+  var ce=document.getElementById('prod-chips');
+  ce.innerHTML=chips.length?chips.map(function(c){return'<span class="summary-chip">'+c+'</span>'}).join(''):'<span class="summary-empty">식기 종류를 선택해주세요</span>';
+}
+
+// 불량 요약
+function updateDefectSummary(){
+  var dishes=getCheckedDishes('defect');
+  var defTotal=0;
+  DEFECT_IDS.forEach(function(id){defTotal+=(parseInt(document.getElementById(id).value)||0)});
+  document.getElementById('defect-total').textContent=defTotal.toLocaleString();
+  var ce=document.getElementById('defect-chips');
+  var chips=dishes.map(function(n){return'<span class="summary-chip">'+n+'</span>'});
+  if(defTotal>0) chips.push('<span class="summary-chip">불량 '+defTotal+'건</span>');
+  ce.innerHTML=chips.length?chips.join(''):'<span class="summary-empty">식기 종류를 선택해주세요</span>';
+}
+
+// 폐기 요약
+function updateDiscardSummary(){
+  var w=parseInt(document.getElementById('dis-wash').value)||0;
+  var ins=parseInt(document.getElementById('dis-inspect').value)||0;
+  var total=w+ins;
+  document.getElementById('discard-total').textContent=total.toLocaleString();
+  var dishes=getCheckedDishes('discard');
+  var ce=document.getElementById('discard-chips');
+  var chips=dishes.map(function(n){return'<span class="summary-chip">'+n+'</span>'});
+  if(total>0) chips.push('<span class="summary-chip">폐기 '+total+'개</span>');
+  ce.innerHTML=chips.length?chips.join(''):'<span class="summary-empty">식기 종류를 선택해주세요</span>';
+}
+
+// Toast
+function showToast(msg, type){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  var cls='toast show ';
+  if(type==='error') cls+='error-bg';
+  else if(type==='defect') cls+='defect-bg';
+  else if(type==='discard') cls+='discard-bg';
+  else cls+='prod-bg';
+  t.className=cls;
+  setTimeout(function(){t.className='toast'},3500);
+}
+
+// 내역 렌더링
+function renderHistory(type){
+  var el=document.getElementById('history-'+type);
+  var h=histories[type];
+  if(!h.length){el.innerHTML='<div class="empty-state">아직 입력한 내역이 없습니다</div>';return}
+  el.innerHTML=h.slice().reverse().map(function(rec){
+    var detail='';
+    if(type==='prod'){
+      detail=rec.items.map(function(it){return'<div class="h-item-row"><span>'+it.dishtype+'</span><span class="h-item-qty prod">정규 '+it.regular+' / OT '+it.ot+'</span></div>'}).join('');
+    } else if(type==='defect'){
+      detail='<div class="h-item-row"><span>'+rec.dishes.join(', ')+'</span><span class="h-item-qty defect">불량 '+rec.defectTotal+'건</span></div>';
+    } else {
+      detail='<div class="h-item-row"><span>'+rec.dishes.join(', ')+'</span><span class="h-item-qty discard">세척 '+rec.wash+' / 검수 '+rec.inspect+'</span></div>';
+    }
+    return '<div class="history-item">'+
+      '<div class="history-top"><span class="h-factory">'+rec.factory+' · '+rec.shift+'</span><span class="h-time">'+rec.time+'</span></div>'+
+      detail+'</div>';
+  }).join('');
+}
+
+// 전송
+function submitForm(type){
+  var factory=document.getElementById('factory').value;
+  var workDate=document.getElementById('work-date').value;
+  if(!factory){showToast('팩토리를 선택해주세요.','error');return}
+  if(!workDate){showToast('날짜를 선택해주세요.','error');return}
+
+  var btn=document.getElementById('submit-'+type);
+  var payload={date:workDate, factory:factory, shift:shift, type:type};
+  var now=new Date();
+  var timeStr=now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  var record={factory:factory, shift:shift, time:timeStr};
+
+  if(type==='prod'){
+    var items=[];
+    DISHES.forEach(function(name,i){
+      if(!checked.prod[i])return;
+      var r=parseInt(document.getElementById('reg-'+i).value)||0;
+      var o=parseInt(document.getElementById('ot-'+i).value)||0;
+      if(r>0||o>0)items.push({dishtype:name,regular:r,ot:o});
+    });
+    if(!items.length){showToast('식기 종류를 선택하고 수량을 입력해주세요.','error');return}
+    payload.items=items;
+    record.items=items;
+  } else if(type==='defect'){
+    var dishes=getCheckedDishes('defect');
+    if(!dishes.length){showToast('식기 종류를 선택해주세요.','error');return}
+    var defects={};
+    var defTotal=0;
+    DEFECT_IDS.forEach(function(id,idx){
+      var v=parseInt(document.getElementById(id).value)||0;
+      defects[DEFECT_NAMES[idx]]=v;
+      defTotal+=v;
+    });
+    var sample=parseInt(document.getElementById('d-sample').value)||0;
+    payload.dishes=dishes;
+    payload.defects=defects;
+    payload.sample=sample;
+    record.dishes=dishes;
+    record.defectTotal=defTotal;
+  } else {
+    var dishes2=getCheckedDishes('discard');
+    if(!dishes2.length){showToast('식기 종류를 선택해주세요.','error');return}
+    var wash=parseInt(document.getElementById('dis-wash').value)||0;
+    var inspect=parseInt(document.getElementById('dis-inspect').value)||0;
+    if(wash===0&&inspect===0){showToast('폐기 수량을 입력해주세요.','error');return}
+    payload.dishes=dishes2;
+    payload.wash=wash;
+    payload.inspect=inspect;
+    record.dishes=dishes2;
+    record.wash=wash;
+    record.inspect=inspect;
+  }
+
+  btn.disabled=true;btn.textContent='전송 중...';
+  var btnText={'prod':'생산량 시트에 전송','defect':'불량 시트에 전송','discard':'폐기 시트에 전송'};
+
+  fetch(SCRIPT_URL[type],{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+  .then(function(){
+    btn.disabled=false;btn.textContent=btnText[type];
+    var msg = type==='prod'?(payload.items.length+'개 품목 전송 완료!'):
+              type==='defect'?('불량 데이터 전송 완료!'):('폐기 데이터 전송 완료!');
+    showToast(msg, type);
+    histories[type].push(record);
+    localStorage.setItem('h_'+type, JSON.stringify(histories[type]));
+    renderHistory(type);
+    resetForm(type);
+  }).catch(function(){
+    btn.disabled=false;btn.textContent=btnText[type];
+    showToast('전송 실패. 인터넷 연결을 확인해주세요.','error');
+  });
+}
+
+// 초기화
+function resetForm(type){
+  if(type==='prod'){
+    DISHES.forEach(function(_,i){if(checked.prod[i])toggleDish('prod',i)});
+    checked.prod={};
+    updateProdSummary();
+  } else if(type==='defect'){
+    DISHES.forEach(function(_,i){if(checked.defect[i])toggleDish('defect',i)});
+    checked.defect={};
+    DEFECT_IDS.forEach(function(id){document.getElementById(id).value=''});
+    document.getElementById('d-sample').value='';
+    updateDefectSummary();
+  } else {
+    DISHES.forEach(function(_,i){if(checked.discard[i])toggleDish('discard',i)});
+    checked.discard={};
+    document.getElementById('dis-wash').value='';
+    document.getElementById('dis-inspect').value='';
+    updateDiscardSummary();
+  }
+}
+
+// 날짜 헤더
+(function(){
+  var days=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+  var now=new Date();
+  document.getElementById('header-date').textContent=now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일 '+days[now.getDay()];
+})();
+
+// PWA 설치
+var deferredPrompt;
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('install-banner').classList.remove('hidden');
+});
+document.getElementById('install-banner').addEventListener('click',function(e){
+  if(e.target.classList.contains('install-close'))return;
+  if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;document.getElementById('install-banner').classList.add('hidden');}
+});
+
+// 빌드
+buildDishList('prod');
+buildDishList('defect');
+buildDishList('discard');
+renderHistory('prod');
+renderHistory('defect');
+renderHistory('discard');
+</script>
+</body>
+</html>
